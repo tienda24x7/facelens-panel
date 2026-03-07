@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FaceLens • Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#111a2e; --muted:#8ea0c0; --text:#e9f1ff;
+      --accent:#19c37d; --accent2:#2dd4ff; --warn:#ffcc66; --danger:#ff6b6b;
+      --border:rgba(255,255,255,.10);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070b14, #0b1220 35%, #070b14);color:var(--text)}
+    a{color:var(--accent2)}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .topbar{
+      display:flex;gap:16px;align-items:center;justify-content:space-between;
+      padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:rgba(17,26,46,.7);
+      backdrop-filter: blur(8px);
+    }
+    .brand{display:flex;gap:10px;align-items:center}
+    .dot{width:12px;height:12px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+    .title{font-weight:800;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:13px;margin-top:2px}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .pill{
+      border:1px solid var(--border);background:rgba(255,255,255,.03);
+      padding:8px 10px;border-radius:999px;color:var(--text);font-size:13px
+    }
+    button{
+      cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.04);
+      color:var(--text);padding:9px 12px;border-radius:10px;font-weight:700
+    }
+    button:hover{background:rgba(255,255,255,.07)}
+    .grid{display:grid;gap:12px;margin-top:16px}
+    .kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .card{
+      border:1px solid var(--border);border-radius:14px;background:rgba(17,26,46,.65);
+      padding:14px 14px 12px;min-height:86px
+    }
+    .kpiLabel{color:var(--muted);font-size:12px;display:flex;gap:6px;align-items:center}
+    .kpiVal{font-size:26px;font-weight:900;margin-top:6px}
+    .kpiHint{color:var(--muted);font-size:12px;margin-top:4px;line-height:1.35}
+    .twoCols{grid-template-columns:1.25fr .75fr}
+    .threeCols{grid-template-columns:repeat(3,minmax(0,1fr))}
+    h2{margin:0 0 10px;font-size:16px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
+    th{color:var(--muted);text-align:left;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+    .tag{
+      display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);
+      padding:4px 8px;border-radius:999px;font-size:12px;color:var(--text);background:rgba(255,255,255,.03)
+    }
+    .mini{font-size:12px;color:var(--muted)}
+    .chart{
+      width:100%;height:240px;border-radius:12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.02);display:block
+    }
+    .helpBox{
+      margin-top:14px;border:1px dashed rgba(255,255,255,.18);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.02)
+    }
+    details summary{cursor:pointer;font-weight:800}
+    .err{border:1px solid rgba(255,107,107,.35);background:rgba(255,107,107,.08);padding:12px 14px;border-radius:12px;margin-top:14px}
+    @media (max-width: 980px){
+      .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .twoCols{grid-template-columns:1fr}
+      .threeCols{grid-template-columns:1fr}
+      .controls{justify-content:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title" id="mainTitle">FaceLens • Dashboard</div>
+          <div class="sub" id="clientLine">Cargando…</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="pill" id="rangePill">Rango: —</div>
+        <button id="reloadBtn">Actualizar</button>
+        <button id="helpBtn">¿Qué significa?</button>
+      </div>
+    </div>
+
+    <div id="errorBox" class="err" style="display:none"></div>
+
+    <div class="grid kpis" id="kpiGrid"></div>
+
+    <div class="grid twoCols">
+      <div class="card">
+        <h2>Evolución diaria</h2>
+        <canvas id="dailyChart" class="chart" width="1000" height="240"></canvas>
+        <div class="mini" id="chartFoot">—</div>
+      </div>
+
+      <div class="card">
+        <h2>Resumen rápido</h2>
+        <div class="mini" id="summaryText">—</div>
+        <div class="helpBox" style="margin-top:12px">
+          <details>
+            <summary>Tips para mejorar resultados</summary>
+            <ul class="mini" style="margin:10px 0 0 18px;line-height:1.55">
+              <li>Si suben <b>Vistas</b> pero no <b>Clics</b>, revisá el botón “Ver producto” y las URLs.</li>
+              <li>Usá campañas con <b>utm_campaign</b> para comparar ads.</li>
+              <li>Los modelos con más vistas son tus “ganadores”: empujalos en promos.</li>
+              <li>Más <b>Capturas</b> = más chance de compartir por WhatsApp.</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid threeCols">
+      <div class="card">
+        <h2 id="topViewsTitle">Top modelos (vistas)</h2>
+        <div id="topViews"></div>
+      </div>
+      <div class="card">
+        <h2 id="topClicksTitle">Top modelos (clics)</h2>
+        <div id="topClicks"></div>
+      </div>
+      <div class="card">
+        <h2>Campañas (utm_campaign)</h2>
+        <div id="campaigns"></div>
+      </div>
+    </div>
+
+    <div class="grid twoCols">
+      <div class="card">
+        <h2>Categorías</h2>
+        <div id="categories"></div>
+      </div>
+
+      <div class="card">
+        <h2>Ayuda (notas)</h2>
+        <div class="mini" id="helpText">—</div>
+      </div>
+    </div>
+
+    <div class="helpBox" style="margin-top:18px">
+      <details>
+        <summary>Cómo usar este link</summary>
+        <div class="mini" style="margin-top:8px;line-height:1.55" id="usageHelp">
+          Este panel funciona con un link así:
+          <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+            <code>?slug=tu_slug&t=tu_token&days=30</code>
+          </div>
+          <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> (opcional) rango de días.
+        </div>
+      </details>
+    </div>
+  </div>
+
+<script>
+  const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
+  const $ = (id) => document.getElementById(id);
+
+  function getParams(){
+    const u = new URL(location.href);
+    return {
+      slug: u.searchParams.get("slug") || "",
+      t: u.searchParams.get("t") || "",
+      days: u.searchParams.get("days") || "30",
+      internal: u.searchParams.get("internal") === "1",
+    };
+  }
+
+  function fmt(n){
+    const x = Number(n || 0);
+    if (!Number.isFinite(x)) return "0";
+    return x.toLocaleString("es-AR");
+  }
+
+  function fmtPct(n){
+    const x = Number(n || 0);
+    if (!Number.isFinite(x)) return "0%";
+    return x.toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
+  }
+
+  function showError(msg){
+    const box = $("errorBox");
+    box.style.display = "block";
+    box.textContent = msg;
+  }
+
+  function clearError(){
+    const box = $("errorBox");
+    box.style.display = "none";
+    box.textContent = "";
+  }
+
+  function renderKPIs(data){
+    const k = data?.kpi || {};
+    const help = data?.help || {};
+
+    const items = [
+      { key:"views", label:"Vistas", val:fmt(k.views), hint:help.views },
+      { key:"clicks", label:"Clics", val:fmt(k.clicks), hint:help.clicks },
+      { key:"captures", label:"Capturas", val:fmt(k.captures), hint:help.captures },
+      { key:"visitors", label:"Visitantes", val:fmt(k.visitors), hint:help.visitors },
+      { key:"sessions", label:"Sesiones", val:fmt(k.sessions), hint:help.sessions },
+      { key:"ctr_pct", label:"CTR", val:fmtPct(k.ctr_pct), hint:help.ctr_pct },
+    ];
+
+    const grid = $("kpiGrid");
+    grid.innerHTML = items.map(it => `
+      <div class="card">
+        <div class="kpiLabel">${it.label}</div>
+        <div class="kpiVal">${it.val}</div>
+        <div class="kpiHint">${it.hint || ""}</div>
+      </div>
+    `).join("");
+  }
+
+  function renderTable(el, cols, rows){
+    if (!rows || !rows.length) {
+      el.innerHTML = `<div class="mini">Sin datos todavía.</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <table>
+        <thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr>${r.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderTop(data, isInternal){
+    if (isInternal) {
+      $("topViewsTitle").textContent = "Top clientes (vistas)";
+      $("topClicksTitle").textContent = "Top clientes (clics)";
+
+      renderTable($("topViews"),
+        ["Cliente", "Vistas"],
+        (data.top_clients_views || []).map(x => [x.slug, fmt(x.views)])
+      );
+
+      renderTable($("topClicks"),
+        ["Cliente", "Clics"],
+        (data.top_clients_clicks || []).map(x => [x.slug, fmt(x.clicks)])
+      );
+    } else {
+      $("topViewsTitle").textContent = "Top modelos (vistas)";
+      $("topClicksTitle").textContent = "Top modelos (clics)";
+
+      renderTable($("topViews"),
+        ["Modelo", "Vistas"],
+        (data.top_models_views || []).map(x => [x.model, fmt(x.views)])
+      );
+
+      renderTable($("topClicks"),
+        ["Modelo", "Clics"],
+        (data.top_models_clicks || []).map(x => [x.model, fmt(x.clicks)])
+      );
+    }
+
+    renderTable($("campaigns"),
+      ["Campaña", "Vistas", "Clics", "CTR"],
+      (data.campaigns || []).map(x => [
+        `<span class="tag">${x.campaign}</span>`,
+        fmt(x.views),
+        fmt(x.clicks),
+        fmtPct(x.ctr_pct)
+      ])
+    );
+
+    renderTable($("categories"),
+      ["Categoría", "Vistas", "Clics", "CTR"],
+      (data.categories || []).map(x => [
+        `<span class="tag">${x.category}</span>`,
+        fmt(x.views),
+        fmt(x.clicks),
+        fmtPct(x.ctr_pct)
+      ])
+    );
+  }
+
+  function drawDailyChart(daily){
+    const c = $("dailyChart");
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+
+    const padL=46, padR=14, padT=14, padB=28;
+    const W=c.width, H=c.height;
+    const plotW = W-padL-padR;
+    const plotH = H-padT-padB;
+
+    const rows = (daily || []);
+    if (!rows.length) {
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "14px system-ui";
+      ctx.fillText("Sin datos diarios todavía.", padL, padT+20);
+      return;
+    }
+
+    const views = rows.map(r => Number(r.views||0));
+    const clicks = rows.map(r => Number(r.clicks||0));
+    const maxY = Math.max(1, ...views, ...clicks);
+
+    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.lineWidth = 1;
+    for (let i=0;i<=4;i++){
+      const y = padT + (plotH*(i/4));
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    }
+
+    function xAt(i){ return padL + (plotW*(rows.length===1 ? 0 : i/(rows.length-1))); }
+    function yAt(v){ return padT + plotH - (plotH*(v/maxY)); }
+
+    ctx.strokeStyle = "rgba(25,195,125,.95)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    rows.forEach((r,i)=>{
+      const x=xAt(i), y=yAt(Number(r.views||0));
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(45,212,255,.95)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    rows.forEach((r,i)=>{
+      const x=xAt(i), y=yAt(Number(r.clicks||0));
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,.65)";
+    ctx.font = "12px system-ui";
+    ctx.fillText("0", 18, padT+plotH+4);
+    ctx.fillText(String(maxY), 10, padT+12);
+
+    const lastDay = rows[rows.length-1].day;
+    ctx.fillText(rows[0].day, padL, H-10);
+    ctx.fillText(lastDay, W-padR-90, H-10);
+
+    $("chartFoot").textContent = "Línea verde: Vistas • Línea celeste: Clics";
+  }
+
+  function renderHelp(data){
+    const help = data?.help || {};
+    const lines = Object.entries(help).map(([k,v]) => `<div><b>${k}</b>: ${v}</div>`).join("");
+    $("helpText").innerHTML = lines || "—";
+  }
+
+  function renderSummary(data, isInternal){
+    const k = data?.kpi || {};
+    const days = data?.range_days || 30;
+
+    if (isInternal) {
+      const activeClients = data?.active_clients || 0;
+      const topClient = data?.top_clients_views?.[0]?.slug || "—";
+      const topModel = data?.top_models_views?.[0]?.model || "—";
+
+      $("summaryText").innerHTML = `
+        <div style="line-height:1.55">
+          <div><b>Resumen global FaceLens</b> • últimos <b>${days}</b> días</div>
+          <div class="mini" style="margin-top:8px">
+            Hubo <b>${fmt(k.views)}</b> vistas, <b>${fmt(k.clicks)}</b> clics y <b>${fmt(k.captures)}</b> capturas.
+            El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
+            <b> ${fmt(activeClients)}</b> clientes con actividad. El cliente con más vistas fue <b>${topClient}</b> y el modelo más visto fue <b>${topModel}</b>.
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const name = data?.client?.name || data?.client?.slug || "cliente";
+    $("summaryText").innerHTML = `
+      <div style="line-height:1.55">
+        <div><b>${name}</b> • últimos <b>${days}</b> días</div>
+        <div class="mini" style="margin-top:8px">
+          Hubo <b>${fmt(k.views)}</b> vistas de modelos y <b>${fmt(k.clicks)}</b> clics en “Ver producto”.
+          El CTR es <b>${fmtPct(k.ctr_pct)}</b>. Se registraron <b>${fmt(k.visitors)}</b> visitantes únicos.
+        </div>
+      </div>
+    `;
+  }
+
+  async function load(){
+    clearError();
+
+    const { slug, t, days, internal } = getParams();
+
+    if (!t) {
+      showError("Falta token en el link.");
+      $("clientLine").textContent = "Falta información en el link";
+      return;
+    }
+
+    if (!internal && !slug){
+      showError("Falta slug en el link. Ejemplo: ?slug=tienda24x7_demo&t=TU_TOKEN&days=30");
+      $("clientLine").textContent = "Falta información en el link";
+      return;
+    }
+
+    $("rangePill").textContent = `Rango: ${days} días`;
+
+    let url = "";
+    if (internal) {
+      $("mainTitle").textContent = "FaceLens • Dashboard interno";
+      $("clientLine").textContent = "Resumen total de toda la app";
+      $("usageHelp").innerHTML = `
+        Dashboard interno global.
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?internal=1&t=TU_TOKEN_INTERNO&days=30</code>
+        </div>
+        <b>internal=1</b> activa el modo global. <b>t</b> es el token interno. <b>days</b> define el rango.
+      `;
+      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+    } else {
+      $("mainTitle").textContent = "FaceLens • Dashboard";
+      $("clientLine").textContent = `Cliente: ${slug}`;
+      $("usageHelp").innerHTML = `
+        Este panel funciona con un link así:
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?slug=tu_slug&t=tu_token&days=30</code>
+        </div>
+        <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> (opcional) rango de días.
+      `;
+      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+    }
+
+    const res = await fetch(url, { method:"GET" });
+    const data = await res.json().catch(()=>null);
+
+    if (!data || data.ok !== true){
+      showError("No pude cargar métricas. Revisá token/slug o si la function está deployada. Respuesta: " + JSON.stringify(data));
+      return;
+    }
+
+    if (internal) {
+      $("clientLine").textContent = `Dashboard interno • ${fmt(data.active_clients || 0)} clientes activos`;
+    } else {
+      $("clientLine").textContent = `Cliente: ${data.client?.name || slug} (${slug})`;
+    }
+
+    $("rangePill").textContent = `Rango: ${data.range_days || days} días`;
+
+    renderKPIs(data);
+    renderTop(data, internal);
+    drawDailyChart(data.daily || []);
+    renderHelp(data);
+    renderSummary(data, internal);
+  }
+
+  $("reloadBtn").onclick = () => load();
+  $("helpBtn").onclick = () => {
+    const el = $("helpText");
+    el.scrollIntoView({ behavior:"smooth", block:"center" });
+    el.parentElement.style.boxShadow = "0 0 0 2px rgba(45,212,255,.35)";
+    setTimeout(()=> el.parentElement.style.boxShadow = "none", 900);
+  };
+
+  load();
+</script>
+</body>
+</html>
