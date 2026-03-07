@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="es">
 <head>
@@ -77,7 +76,7 @@
       <div class="brand">
         <div class="dot"></div>
         <div>
-          <div class="title">FaceLens • Dashboard</div>
+          <div class="title" id="mainTitle">FaceLens • Dashboard</div>
           <div class="sub" id="clientLine">Cargando…</div>
         </div>
       </div>
@@ -118,11 +117,11 @@
 
     <div class="grid threeCols">
       <div class="card">
-        <h2>Top modelos (vistas)</h2>
+        <h2 id="topViewsTitle">Top modelos (vistas)</h2>
         <div id="topViews"></div>
       </div>
       <div class="card">
-        <h2>Top modelos (clics)</h2>
+        <h2 id="topClicksTitle">Top modelos (clics)</h2>
         <div id="topClicks"></div>
       </div>
       <div class="card">
@@ -146,7 +145,7 @@
     <div class="helpBox" style="margin-top:18px">
       <details>
         <summary>Cómo usar este link</summary>
-        <div class="mini" style="margin-top:8px;line-height:1.55">
+        <div class="mini" style="margin-top:8px;line-height:1.55" id="usageHelp">
           Este panel funciona con un link así:
           <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
             <code>?slug=tu_slug&t=tu_token&days=30</code>
@@ -155,13 +154,10 @@
         </div>
       </details>
     </div>
-
   </div>
 
 <script>
-  // ✅ Tu endpoint real (Edge Function)
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
-
   const $ = (id) => document.getElementById(id);
 
   function getParams(){
@@ -170,6 +166,7 @@
       slug: u.searchParams.get("slug") || "",
       t: u.searchParams.get("t") || "",
       days: u.searchParams.get("days") || "30",
+      internal: u.searchParams.get("internal") === "1",
     };
   }
 
@@ -178,6 +175,7 @@
     if (!Number.isFinite(x)) return "0";
     return x.toLocaleString("es-AR");
   }
+
   function fmtPct(n){
     const x = Number(n || 0);
     if (!Number.isFinite(x)) return "0%";
@@ -189,6 +187,7 @@
     box.style.display = "block";
     box.textContent = msg;
   }
+
   function clearError(){
     const box = $("errorBox");
     box.style.display = "none";
@@ -233,15 +232,35 @@
     `;
   }
 
-  function renderTop(data){
-    renderTable($("topViews"),
-      ["Modelo", "Vistas"],
-      (data.top_models_views || []).map(x => [x.model, fmt(x.views)])
-    );
-    renderTable($("topClicks"),
-      ["Modelo", "Clics"],
-      (data.top_models_clicks || []).map(x => [x.model, fmt(x.clicks)])
-    );
+  function renderTop(data, isInternal){
+    if (isInternal) {
+      $("topViewsTitle").textContent = "Top clientes (vistas)";
+      $("topClicksTitle").textContent = "Top clientes (clics)";
+
+      renderTable($("topViews"),
+        ["Cliente", "Vistas"],
+        (data.top_clients_views || []).map(x => [x.slug, fmt(x.views)])
+      );
+
+      renderTable($("topClicks"),
+        ["Cliente", "Clics"],
+        (data.top_clients_clicks || []).map(x => [x.slug, fmt(x.clicks)])
+      );
+    } else {
+      $("topViewsTitle").textContent = "Top modelos (vistas)";
+      $("topClicksTitle").textContent = "Top modelos (clics)";
+
+      renderTable($("topViews"),
+        ["Modelo", "Vistas"],
+        (data.top_models_views || []).map(x => [x.model, fmt(x.views)])
+      );
+
+      renderTable($("topClicks"),
+        ["Modelo", "Clics"],
+        (data.top_models_clicks || []).map(x => [x.model, fmt(x.clicks)])
+      );
+    }
+
     renderTable($("campaigns"),
       ["Campaña", "Vistas", "Clics", "CTR"],
       (data.campaigns || []).map(x => [
@@ -251,6 +270,7 @@
         fmtPct(x.ctr_pct)
       ])
     );
+
     renderTable($("categories"),
       ["Categoría", "Vistas", "Clics", "CTR"],
       (data.categories || []).map(x => [
@@ -284,7 +304,6 @@
     const clicks = rows.map(r => Number(r.clicks||0));
     const maxY = Math.max(1, ...views, ...clicks);
 
-    // grid
     ctx.strokeStyle = "rgba(255,255,255,.10)";
     ctx.lineWidth = 1;
     for (let i=0;i<=4;i++){
@@ -295,7 +314,6 @@
     function xAt(i){ return padL + (plotW*(rows.length===1 ? 0 : i/(rows.length-1))); }
     function yAt(v){ return padT + plotH - (plotH*(v/maxY)); }
 
-    // line views
     ctx.strokeStyle = "rgba(25,195,125,.95)";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -305,7 +323,6 @@
     });
     ctx.stroke();
 
-    // line clicks
     ctx.strokeStyle = "rgba(45,212,255,.95)";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -315,7 +332,6 @@
     });
     ctx.stroke();
 
-    // axes labels
     ctx.fillStyle = "rgba(255,255,255,.65)";
     ctx.font = "12px system-ui";
     ctx.fillText("0", 18, padT+plotH+4);
@@ -334,12 +350,30 @@
     $("helpText").innerHTML = lines || "—";
   }
 
-  function renderSummary(data){
+  function renderSummary(data, isInternal){
     const k = data?.kpi || {};
-    const name = data?.client?.name || data?.client?.slug || "cliente";
     const days = data?.range_days || 30;
 
-    const txt = `
+    if (isInternal) {
+      const activeClients = data?.active_clients || 0;
+      const topClient = data?.top_clients_views?.[0]?.slug || "—";
+      const topModel = data?.top_models_views?.[0]?.model || "—";
+
+      $("summaryText").innerHTML = `
+        <div style="line-height:1.55">
+          <div><b>Resumen global FaceLens</b> • últimos <b>${days}</b> días</div>
+          <div class="mini" style="margin-top:8px">
+            Hubo <b>${fmt(k.views)}</b> vistas, <b>${fmt(k.clicks)}</b> clics y <b>${fmt(k.captures)}</b> capturas.
+            El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
+            <b>${fmt(activeClients)}</b> clientes con actividad. El cliente con más vistas fue <b>${topClient}</b> y el modelo más visto fue <b>${topModel}</b>.
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const name = data?.client?.name || data?.client?.slug || "cliente";
+    $("summaryText").innerHTML = `
       <div style="line-height:1.55">
         <div><b>${name}</b> • últimos <b>${days}</b> días</div>
         <div class="mini" style="margin-top:8px">
@@ -348,23 +382,51 @@
         </div>
       </div>
     `;
-    $("summaryText").innerHTML = txt;
   }
 
   async function load(){
     clearError();
 
-    const { slug, t, days } = getParams();
-    if (!slug || !t){
-      showError("Falta slug o token en el link. Ejemplo: ?slug=tienda24x7_demo&t=TU_TOKEN&days=30");
+    const { slug, t, days, internal } = getParams();
+
+    if (!t) {
+      showError("Falta token en el link.");
+      $("clientLine").textContent = "Falta información en el link";
+      return;
+    }
+
+    if (!internal && !slug){
+      showError("Falta slug en el link. Ejemplo: ?slug=tienda24x7_demo&t=TU_TOKEN&days=30");
       $("clientLine").textContent = "Falta información en el link";
       return;
     }
 
     $("rangePill").textContent = `Rango: ${days} días`;
-    $("clientLine").textContent = `Cliente: ${slug}`;
 
-    const url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+    let url = "";
+    if (internal) {
+      $("mainTitle").textContent = "FaceLens • Dashboard interno";
+      $("clientLine").textContent = "Resumen total de toda la app";
+      $("usageHelp").innerHTML = `
+        Dashboard interno global.
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?internal=1&t=TU_TOKEN_INTERNO&days=30</code>
+        </div>
+        <b>internal=1</b> activa el modo global. <b>t</b> es el token interno. <b>days</b> define el rango.
+      `;
+      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+    } else {
+      $("mainTitle").textContent = "FaceLens • Dashboard";
+      $("clientLine").textContent = `Cliente: ${slug}`;
+      $("usageHelp").innerHTML = `
+        Este panel funciona con un link así:
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?slug=tu_slug&t=tu_token&days=30</code>
+        </div>
+        <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> (opcional) rango de días.
+      `;
+      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+    }
 
     const res = await fetch(url, { method:"GET" });
     const data = await res.json().catch(()=>null);
@@ -374,14 +436,19 @@
       return;
     }
 
-    $("clientLine").textContent = `Cliente: ${data.client?.name || slug} (${slug})`;
+    if (internal) {
+      $("clientLine").textContent = `Dashboard interno • ${fmt(data.active_clients || 0)} clientes activos`;
+    } else {
+      $("clientLine").textContent = `Cliente: ${data.client?.name || slug} (${slug})`;
+    }
+
     $("rangePill").textContent = `Rango: ${data.range_days || days} días`;
 
     renderKPIs(data);
-    renderTop(data);
+    renderTop(data, internal);
     drawDailyChart(data.daily || []);
     renderHelp(data);
-    renderSummary(data);
+    renderSummary(data, internal);
   }
 
   $("reloadBtn").onclick = () => load();
