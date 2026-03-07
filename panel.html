@@ -6,12 +6,19 @@
   <title>FaceLens • Dashboard</title>
   <style>
     :root{
-      --bg:#0b1220; --card:#111a2e; --muted:#8ea0c0; --text:#e9f1ff;
-      --accent:#19c37d; --accent2:#2dd4ff; --warn:#ffcc66; --danger:#ff6b6b;
+      --bg:#0b1220;
+      --bg2:#070b14;
+      --card:#111a2e;
+      --muted:#8ea0c0;
+      --text:#e9f1ff;
+      --accent:#19c37d;
+      --accent2:#2dd4ff;
+      --warn:#ffcc66;
+      --danger:#ff6b6b;
       --border:rgba(255,255,255,.10);
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070b14, #0b1220 35%, #070b14);color:var(--text)}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg2), var(--bg) 35%, var(--bg2));color:var(--text)}
     a{color:var(--accent2)}
     .wrap{max-width:1100px;margin:0 auto;padding:24px}
     .topbar{
@@ -20,6 +27,10 @@
       backdrop-filter: blur(8px);
     }
     .brand{display:flex;gap:10px;align-items:center}
+    .brandLogo{
+      width:34px;height:34px;border-radius:10px;object-fit:contain;background:rgba(255,255,255,.04);
+      border:1px solid var(--border);padding:4px;display:none
+    }
     .dot{width:12px;height:12px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
     .title{font-weight:800;letter-spacing:.2px}
     .sub{color:var(--muted);font-size:13px;margin-top:2px}
@@ -74,7 +85,8 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="dot"></div>
+        <img id="brandLogo" class="brandLogo" alt="Logo cliente" />
+        <div class="dot" id="brandDot"></div>
         <div>
           <div class="title" id="mainTitle">FaceLens • Dashboard</div>
           <div class="sub" id="clientLine">Cargando…</div>
@@ -159,6 +171,67 @@
 <script>
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
+
+  function hexToRgb(hex){
+    const raw = String(hex || "").trim().replace("#", "");
+    if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null;
+    const num = parseInt(raw, 16);
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255,
+    };
+  }
+
+  function rgbaFromHex(hex, alpha){
+    const rgb = hexToRgb(hex);
+    if (!rgb) return `rgba(255,255,255,${alpha})`;
+    return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+  }
+
+  function normalizeHex(hex, fallback){
+    const value = String(hex || "").trim();
+    return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+  }
+
+  function applyClientTheme(client, isInternal){
+    if (isInternal) {
+      document.documentElement.style.setProperty("--accent", "#19c37d");
+      document.documentElement.style.setProperty("--accent2", "#2dd4ff");
+      document.documentElement.style.setProperty("--border", "rgba(255,255,255,.10)");
+      return;
+    }
+
+    const primary = normalizeHex(client?.color_primario, "#19c37d");
+    const secondary = normalizeHex(client?.color_secundario || client?.olor_secundario, "#2dd4ff");
+
+    document.documentElement.style.setProperty("--accent", primary);
+    document.documentElement.style.setProperty("--accent2", secondary);
+    document.documentElement.style.setProperty("--border", rgbaFromHex(primary, 0.22));
+
+    const topbar = document.querySelector(".topbar");
+    if (topbar) {
+      topbar.style.borderColor = rgbaFromHex(primary, 0.30);
+      topbar.style.boxShadow = `0 0 0 1px ${rgbaFromHex(primary, 0.08)} inset`;
+    }
+
+    document.querySelectorAll(".card").forEach((card) => {
+      card.style.borderColor = rgbaFromHex(primary, 0.18);
+    });
+
+    document.querySelectorAll(".tag").forEach((tag) => {
+      tag.style.borderColor = rgbaFromHex(primary, 0.25);
+    });
+
+    const logo = $("brandLogo");
+    const logoUrl = String(client?.logo_url || "").trim();
+    if (logo && logoUrl) {
+      logo.src = logoUrl;
+      logo.style.display = "block";
+    } else if (logo) {
+      logo.style.display = "none";
+    }
+  }
 
   function getParams(){
     const u = new URL(location.href);
@@ -282,7 +355,7 @@
     );
   }
 
-  function drawDailyChart(daily){
+  function drawDailyChart(daily, isInternal){
     const c = $("dailyChart");
     const ctx = c.getContext("2d");
     ctx.clearRect(0,0,c.width,c.height);
@@ -314,7 +387,10 @@
     function xAt(i){ return padL + (plotW*(rows.length===1 ? 0 : i/(rows.length-1))); }
     function yAt(v){ return padT + plotH - (plotH*(v/maxY)); }
 
-    ctx.strokeStyle = "rgba(25,195,125,.95)";
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#19c37d";
+    const accent2 = getComputedStyle(document.documentElement).getPropertyValue("--accent2").trim() || "#2dd4ff";
+
+    ctx.strokeStyle = accent;
     ctx.lineWidth = 3;
     ctx.beginPath();
     rows.forEach((r,i)=>{
@@ -323,7 +399,7 @@
     });
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(45,212,255,.95)";
+    ctx.strokeStyle = accent2;
     ctx.lineWidth = 3;
     ctx.beginPath();
     rows.forEach((r,i)=>{
@@ -341,7 +417,9 @@
     ctx.fillText(rows[0].day, padL, H-10);
     ctx.fillText(lastDay, W-padR-90, H-10);
 
-    $("chartFoot").textContent = "Línea verde: Vistas • Línea celeste: Clics";
+    $("chartFoot").textContent = isInternal
+      ? "Línea principal: Vistas globales • Línea secundaria: Clics globales"
+      : "Línea principal: Vistas • Línea secundaria: Clics";
   }
 
   function renderHelp(data){
@@ -436,9 +514,12 @@
       return;
     }
 
+    applyClientTheme(data.client || {}, internal);
+
     if (internal) {
       $("clientLine").textContent = `Dashboard interno • ${fmt(data.active_clients || 0)} clientes activos`;
     } else {
+      $("mainTitle").textContent = `FaceLens • Dashboard ${data.client?.name || slug}`;
       $("clientLine").textContent = `Cliente: ${data.client?.name || slug} (${slug})`;
     }
 
@@ -446,7 +527,7 @@
 
     renderKPIs(data);
     renderTop(data, internal);
-    drawDailyChart(data.daily || []);
+    drawDailyChart(data.daily || [], internal);
     renderHelp(data);
     renderSummary(data, internal);
   }
