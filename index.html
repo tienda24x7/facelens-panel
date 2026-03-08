@@ -74,6 +74,10 @@
     .kpiLabel{color:var(--muted);font-size:12px;display:flex;gap:6px;align-items:center}
     .kpiVal{font-size:26px;font-weight:900;margin-top:6px}
     .kpiHint{color:var(--muted);font-size:12px;margin-top:4px;line-height:1.35}
+    .kpiDelta{font-size:12px;font-weight:800;margin-top:6px}
+    .kpiDelta.up{color:#6ee7b7}
+    .kpiDelta.down{color:#fca5a5}
+    .kpiDelta.flat{color:#cbd5e1}
     .twoCols{grid-template-columns:1.25fr .75fr}
     .threeCols{grid-template-columns:repeat(3,minmax(0,1fr))}
     h2{margin:0 0 10px;font-size:16px}
@@ -211,7 +215,6 @@
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
   const ALLOWED_DAYS = [1, 7, 14, 30, 90];
-  const ALLOWED_PLANS = ["all", "GO", "PRIME"];
 
   function hexToRgb(hex){
     const raw = String(hex || "").trim().replace("#", "");
@@ -376,6 +379,32 @@
     return x.toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
   }
 
+  function fmtSignedPct(n){
+    const x = Number(n || 0);
+    const sign = x > 0 ? "+" : "";
+    return `${sign}${x.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
+  }
+
+  function fmtSignedPts(n){
+    const x = Number(n || 0);
+    const sign = x > 0 ? "+" : "";
+    return `${sign}${x.toLocaleString("es-AR", { maximumFractionDigits: 2 })} pts`;
+  }
+
+  function deltaClass(n){
+    const x = Number(n || 0);
+    if (x > 0) return "up";
+    if (x < 0) return "down";
+    return "flat";
+  }
+
+  function deltaArrow(n){
+    const x = Number(n || 0);
+    if (x > 0) return "↑";
+    if (x < 0) return "↓";
+    return "→";
+  }
+
   function showError(msg){
     const box = $("errorBox");
     box.style.display = "block";
@@ -391,24 +420,32 @@
   function renderKPIs(data){
     const k = data?.kpi || {};
     const help = data?.help || {};
+    const d = data?.kpi_delta || {};
 
     const items = [
-      { key:"views", label:"Vistas", val:fmt(k.views), hint:help.views },
-      { key:"clicks", label:"Clics", val:fmt(k.clicks), hint:help.clicks },
-      { key:"captures", label:"Capturas", val:fmt(k.captures), hint:help.captures },
-      { key:"visitors", label:"Visitantes", val:fmt(k.visitors), hint:help.visitors },
-      { key:"sessions", label:"Sesiones", val:fmt(k.sessions), hint:help.sessions },
-      { key:"ctr_pct", label:"CTR", val:fmtPct(k.ctr_pct), hint:help.ctr_pct },
+      { key:"views", label:"Vistas", val:fmt(k.views), hint:help.views, delta: d.views_pct, type: "pct" },
+      { key:"clicks", label:"Clics", val:fmt(k.clicks), hint:help.clicks, delta: d.clicks_pct, type: "pct" },
+      { key:"captures", label:"Capturas", val:fmt(k.captures), hint:help.captures, delta: d.captures_pct, type: "pct" },
+      { key:"visitors", label:"Visitantes", val:fmt(k.visitors), hint:help.visitors, delta: d.visitors_pct, type: "pct" },
+      { key:"sessions", label:"Sesiones", val:fmt(k.sessions), hint:help.sessions, delta: d.sessions_pct, type: "pct" },
+      { key:"ctr_pct", label:"CTR", val:fmtPct(k.ctr_pct), hint:help.ctr_pct, delta: d.ctr_pct_diff, type: "pts" },
     ];
 
     const grid = $("kpiGrid");
-    grid.innerHTML = items.map(it => `
-      <div class="card">
-        <div class="kpiLabel">${it.label}</div>
-        <div class="kpiVal">${it.val}</div>
-        <div class="kpiHint">${it.hint || ""}</div>
-      </div>
-    `).join("");
+    grid.innerHTML = items.map(it => {
+      const cls = deltaClass(it.delta);
+      const arrow = deltaArrow(it.delta);
+      const deltaText = it.type === "pts" ? fmtSignedPts(it.delta) : fmtSignedPct(it.delta);
+
+      return `
+        <div class="card">
+          <div class="kpiLabel">${it.label}</div>
+          <div class="kpiVal">${it.val}</div>
+          <div class="kpiDelta ${cls}">${arrow} ${deltaText} vs período anterior</div>
+          <div class="kpiHint">${it.hint || ""}</div>
+        </div>
+      `;
+    }).join("");
   }
 
   function renderTable(el, cols, rows){
@@ -551,6 +588,7 @@
 
   function renderSummary(data, isInternal){
     const k = data?.kpi || {};
+    const prev = data?.previous_kpi || {};
     const days = data?.range_days || 30;
 
     if (isInternal) {
@@ -565,7 +603,8 @@
           <div><b>Resumen global FaceLens</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
           <div class="mini" style="margin-top:8px">
             Filtro cliente: <b>${clientFilter}</b> · filtro plan: <b>${planFilter}</b>.
-            Hubo <b>${fmt(k.views)}</b> vistas, <b>${fmt(k.clicks)}</b> clics y <b>${fmt(k.captures)}</b> capturas.
+            Hubo <b>${fmt(k.views)}</b> vistas vs <b>${fmt(prev.views)}</b> en el período anterior, 
+            <b>${fmt(k.clicks)}</b> clics vs <b>${fmt(prev.clicks)}</b>, y <b>${fmt(k.captures)}</b> capturas.
             El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
             <b>${fmt(activeClients)}</b> clientes con actividad. El cliente con más vistas fue <b>${topClient}</b> y el modelo más visto fue <b>${topModel}</b>.
           </div>
@@ -579,7 +618,8 @@
       <div style="line-height:1.55">
         <div><b>${name}</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
         <div class="mini" style="margin-top:8px">
-          Hubo <b>${fmt(k.views)}</b> vistas de modelos y <b>${fmt(k.clicks)}</b> clics en “Ver producto”.
+          Hubo <b>${fmt(k.views)}</b> vistas de modelos vs <b>${fmt(prev.views)}</b> en el período anterior,
+          y <b>${fmt(k.clicks)}</b> clics en “Ver producto” vs <b>${fmt(prev.clicks)}</b>.
           El CTR es <b>${fmtPct(k.ctr_pct)}</b>. Se registraron <b>${fmt(k.visitors)}</b> visitantes únicos.
         </div>
       </div>
