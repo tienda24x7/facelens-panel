@@ -39,6 +39,20 @@
       border:1px solid var(--border);background:rgba(255,255,255,.03);
       padding:8px 10px;border-radius:999px;color:var(--text);font-size:13px
     }
+    .rangeSelect{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:13px;
+      outline:none;
+      min-width:120px;
+    }
+    .rangeSelect option{
+      color:#111827;
+      background:#ffffff;
+    }
     button{
       cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.04);
       color:var(--text);padding:9px 12px;border-radius:10px;font-weight:700
@@ -93,7 +107,13 @@
         </div>
       </div>
       <div class="controls">
-        <div class="pill" id="rangePill">Rango: —</div>
+        <select id="rangeSelect" class="rangeSelect" aria-label="Seleccionar rango">
+          <option value="1">Hoy</option>
+          <option value="7">7 días</option>
+          <option value="14">14 días</option>
+          <option value="30" selected>30 días</option>
+          <option value="90">90 días</option>
+        </select>
         <button id="reloadBtn">Actualizar</button>
         <button id="helpBtn">¿Qué significa?</button>
       </div>
@@ -171,6 +191,7 @@
 <script>
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
+  const ALLOWED_DAYS = [1, 7, 14, 30, 90];
 
   function hexToRgb(hex){
     const raw = String(hex || "").trim().replace("#", "");
@@ -192,6 +213,16 @@
   function normalizeHex(hex, fallback){
     const value = String(hex || "").trim();
     return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+  }
+
+  function normalizeDays(value){
+    const n = Number(value || 30);
+    return ALLOWED_DAYS.includes(n) ? n : 30;
+  }
+
+  function setRangeSelect(days){
+    const select = $("rangeSelect");
+    if (select) select.value = String(normalizeDays(days));
   }
 
   function applyClientTheme(client, isInternal){
@@ -238,9 +269,15 @@
     return {
       slug: u.searchParams.get("slug") || "",
       t: u.searchParams.get("t") || "",
-      days: u.searchParams.get("days") || "30",
+      days: normalizeDays(u.searchParams.get("days") || "30"),
       internal: u.searchParams.get("internal") === "1",
     };
+  }
+
+  function updateUrlDays(days){
+    const u = new URL(location.href);
+    u.searchParams.set("days", String(normalizeDays(days)));
+    history.replaceState({}, "", u.toString());
   }
 
   function fmt(n){
@@ -439,7 +476,7 @@
 
       $("summaryText").innerHTML = `
         <div style="line-height:1.55">
-          <div><b>Resumen global FaceLens</b> • últimos <b>${days}</b> días</div>
+          <div><b>Resumen global FaceLens</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
           <div class="mini" style="margin-top:8px">
             Hubo <b>${fmt(k.views)}</b> vistas, <b>${fmt(k.clicks)}</b> clics y <b>${fmt(k.captures)}</b> capturas.
             El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
@@ -453,7 +490,7 @@
     const name = data?.client?.name || data?.client?.slug || "cliente";
     $("summaryText").innerHTML = `
       <div style="line-height:1.55">
-        <div><b>${name}</b> • últimos <b>${days}</b> días</div>
+        <div><b>${name}</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
         <div class="mini" style="margin-top:8px">
           Hubo <b>${fmt(k.views)}</b> vistas de modelos y <b>${fmt(k.clicks)}</b> clics en “Ver producto”.
           El CTR es <b>${fmtPct(k.ctr_pct)}</b>. Se registraron <b>${fmt(k.visitors)}</b> visitantes únicos.
@@ -467,6 +504,8 @@
 
     const { slug, t, days, internal } = getParams();
 
+    setRangeSelect(days);
+
     if (!t) {
       showError("Falta token en el link.");
       $("clientLine").textContent = "Falta información en el link";
@@ -478,8 +517,6 @@
       $("clientLine").textContent = "Falta información en el link";
       return;
     }
-
-    $("rangePill").textContent = `Rango: ${days} días`;
 
     let url = "";
     if (internal) {
@@ -501,7 +538,7 @@
         <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
           <code>?slug=tu_slug&t=tu_token&days=30</code>
         </div>
-        <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> (opcional) rango de días.
+        <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> puede ser 1, 7, 14, 30 o 90.
       `;
       url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
     }
@@ -515,6 +552,7 @@
     }
 
     applyClientTheme(data.client || {}, internal);
+    setRangeSelect(data.range_days || days);
 
     if (internal) {
       $("clientLine").textContent = `Dashboard interno • ${fmt(data.active_clients || 0)} clientes activos`;
@@ -522,8 +560,6 @@
       $("mainTitle").textContent = `FaceLens • Dashboard ${data.client?.name || slug}`;
       $("clientLine").textContent = `Cliente: ${data.client?.name || slug} (${slug})`;
     }
-
-    $("rangePill").textContent = `Rango: ${data.range_days || days} días`;
 
     renderKPIs(data);
     renderTop(data, internal);
@@ -533,11 +569,18 @@
   }
 
   $("reloadBtn").onclick = () => load();
+
   $("helpBtn").onclick = () => {
     const el = $("helpText");
     el.scrollIntoView({ behavior:"smooth", block:"center" });
     el.parentElement.style.boxShadow = "0 0 0 2px rgba(45,212,255,.35)";
     setTimeout(()=> el.parentElement.style.boxShadow = "none", 900);
+  };
+
+  $("rangeSelect").onchange = (e) => {
+    const nextDays = normalizeDays(e.target.value);
+    updateUrlDays(nextDays);
+    load();
   };
 
   load();
