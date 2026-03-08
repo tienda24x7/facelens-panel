@@ -35,10 +35,6 @@
     .title{font-weight:800;letter-spacing:.2px}
     .sub{color:var(--muted);font-size:13px;margin-top:2px}
     .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-    .pill{
-      border:1px solid var(--border);background:rgba(255,255,255,.03);
-      padding:8px 10px;border-radius:999px;color:var(--text);font-size:13px
-    }
     .rangeSelect{
       border:1px solid var(--border);
       background:rgba(255,255,255,.03);
@@ -49,7 +45,18 @@
       outline:none;
       min-width:120px;
     }
-    .rangeSelect option{
+    .filterSelect{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:13px;
+      outline:none;
+      min-width:150px;
+    }
+    .rangeSelect option,
+    .filterSelect option{
       color:#111827;
       background:#ffffff;
     }
@@ -87,6 +94,7 @@
     }
     details summary{cursor:pointer;font-weight:800}
     .err{border:1px solid rgba(255,107,107,.35);background:rgba(255,107,107,.08);padding:12px 14px;border-radius:12px;margin-top:14px}
+    .hidden{display:none !important}
     @media (max-width: 980px){
       .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
       .twoCols{grid-template-columns:1fr}
@@ -114,6 +122,17 @@
           <option value="30" selected>30 días</option>
           <option value="90">90 días</option>
         </select>
+
+        <select id="clientFilterSelect" class="filterSelect hidden" aria-label="Seleccionar cliente">
+          <option value="all">Todos los clientes</option>
+        </select>
+
+        <select id="planFilterSelect" class="filterSelect hidden" aria-label="Seleccionar plan">
+          <option value="all">Todos los planes</option>
+          <option value="GO">GO</option>
+          <option value="PRIME">PRIME</option>
+        </select>
+
         <button id="reloadBtn">Actualizar</button>
         <button id="helpBtn">¿Qué significa?</button>
       </div>
@@ -192,6 +211,7 @@
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
   const ALLOWED_DAYS = [1, 7, 14, 30, 90];
+  const ALLOWED_PLANS = ["all", "GO", "PRIME"];
 
   function hexToRgb(hex){
     const raw = String(hex || "").trim().replace("#", "");
@@ -220,9 +240,56 @@
     return ALLOWED_DAYS.includes(n) ? n : 30;
   }
 
+  function normalizePlan(value){
+    const v = String(value || "all").trim().toUpperCase();
+    if (v === "GO" || v === "PRIME") return v;
+    return "all";
+  }
+
+  function normalizeClient(value){
+    const v = String(value || "all").trim();
+    return v || "all";
+  }
+
   function setRangeSelect(days){
     const select = $("rangeSelect");
     if (select) select.value = String(normalizeDays(days));
+  }
+
+  function setPlanSelect(plan){
+    const select = $("planFilterSelect");
+    if (select) select.value = normalizePlan(plan);
+  }
+
+  function setClientSelect(client){
+    const select = $("clientFilterSelect");
+    if (select) select.value = normalizeClient(client);
+  }
+
+  function toggleInternalFilters(isInternal){
+    $("clientFilterSelect").classList.toggle("hidden", !isInternal);
+    $("planFilterSelect").classList.toggle("hidden", !isInternal);
+  }
+
+  function fillClientOptions(clients, selectedClient){
+    const select = $("clientFilterSelect");
+    if (!select) return;
+
+    const current = normalizeClient(selectedClient);
+    const rows = Array.isArray(clients) ? clients : [];
+
+    select.innerHTML = `
+      <option value="all">Todos los clientes</option>
+      ${rows.map((c) => {
+        const slug = String(c.slug || "").trim();
+        const nombre = String(c.nombre || slug || "").trim();
+        const plan = String(c.plan || "").trim();
+        const label = plan ? `${nombre} (${slug}) · ${plan}` : `${nombre} (${slug})`;
+        return `<option value="${slug}">${label}</option>`;
+      }).join("")}
+    `;
+
+    select.value = current;
   }
 
   function applyClientTheme(client, isInternal){
@@ -230,6 +297,8 @@
       document.documentElement.style.setProperty("--accent", "#19c37d");
       document.documentElement.style.setProperty("--accent2", "#2dd4ff");
       document.documentElement.style.setProperty("--border", "rgba(255,255,255,.10)");
+      const logo = $("brandLogo");
+      if (logo) logo.style.display = "none";
       return;
     }
 
@@ -271,12 +340,27 @@
       t: u.searchParams.get("t") || "",
       days: normalizeDays(u.searchParams.get("days") || "30"),
       internal: u.searchParams.get("internal") === "1",
+      client: normalizeClient(u.searchParams.get("client") || "all"),
+      plan: normalizePlan(u.searchParams.get("plan") || "all"),
     };
   }
 
-  function updateUrlDays(days){
+  function updateUrlFilters({ days, client, plan }){
     const u = new URL(location.href);
-    u.searchParams.set("days", String(normalizeDays(days)));
+
+    if (typeof days !== "undefined") {
+      u.searchParams.set("days", String(normalizeDays(days)));
+    }
+
+    if (u.searchParams.get("internal") === "1") {
+      if (typeof client !== "undefined") {
+        u.searchParams.set("client", normalizeClient(client));
+      }
+      if (typeof plan !== "undefined") {
+        u.searchParams.set("plan", normalizePlan(plan));
+      }
+    }
+
     history.replaceState({}, "", u.toString());
   }
 
@@ -473,11 +557,14 @@
       const activeClients = data?.active_clients || 0;
       const topClient = data?.top_clients_views?.[0]?.slug || "—";
       const topModel = data?.top_models_views?.[0]?.model || "—";
+      const planFilter = data?.filters?.plan || "all";
+      const clientFilter = data?.filters?.client || "all";
 
       $("summaryText").innerHTML = `
         <div style="line-height:1.55">
           <div><b>Resumen global FaceLens</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
           <div class="mini" style="margin-top:8px">
+            Filtro cliente: <b>${clientFilter}</b> · filtro plan: <b>${planFilter}</b>.
             Hubo <b>${fmt(k.views)}</b> vistas, <b>${fmt(k.clicks)}</b> clics y <b>${fmt(k.captures)}</b> capturas.
             El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
             <b>${fmt(activeClients)}</b> clientes con actividad. El cliente con más vistas fue <b>${topClient}</b> y el modelo más visto fue <b>${topModel}</b>.
@@ -502,9 +589,12 @@
   async function load(){
     clearError();
 
-    const { slug, t, days, internal } = getParams();
+    const { slug, t, days, internal, client, plan } = getParams();
 
     setRangeSelect(days);
+    setClientSelect(client);
+    setPlanSelect(plan);
+    toggleInternalFilters(internal);
 
     if (!t) {
       showError("Falta token en el link.");
@@ -525,11 +615,12 @@
       $("usageHelp").innerHTML = `
         Dashboard interno global.
         <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
-          <code>?internal=1&t=TU_TOKEN_INTERNO&days=30</code>
+          <code>?internal=1&t=TU_TOKEN_INTERNO&days=30&client=all&plan=all</code>
         </div>
         <b>internal=1</b> activa el modo global. <b>t</b> es el token interno. <b>days</b> define el rango.
+        <b>client</b> filtra cliente. <b>plan</b> filtra GO o PRIME.
       `;
-      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}&client=${encodeURIComponent(client)}&plan=${encodeURIComponent(plan)}`;
     } else {
       $("mainTitle").textContent = "FaceLens • Dashboard";
       $("clientLine").textContent = `Cliente: ${slug}`;
@@ -555,6 +646,8 @@
     setRangeSelect(data.range_days || days);
 
     if (internal) {
+      fillClientOptions(data.available_clients || [], data.filters?.client || client);
+      setPlanSelect(data.filters?.plan || plan);
       $("clientLine").textContent = `Dashboard interno • ${fmt(data.active_clients || 0)} clientes activos`;
     } else {
       $("mainTitle").textContent = `FaceLens • Dashboard ${data.client?.name || slug}`;
@@ -579,7 +672,19 @@
 
   $("rangeSelect").onchange = (e) => {
     const nextDays = normalizeDays(e.target.value);
-    updateUrlDays(nextDays);
+    updateUrlFilters({ days: nextDays });
+    load();
+  };
+
+  $("clientFilterSelect").onchange = (e) => {
+    const nextClient = normalizeClient(e.target.value);
+    updateUrlFilters({ client: nextClient });
+    load();
+  };
+
+  $("planFilterSelect").onchange = (e) => {
+    const nextPlan = normalizePlan(e.target.value);
+    updateUrlFilters({ plan: nextPlan });
     load();
   };
 
