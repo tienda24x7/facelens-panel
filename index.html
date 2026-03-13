@@ -43,7 +43,7 @@
       border-radius:999px;
       font-size:13px;
       outline:none;
-      min-width:120px;
+      min-width:140px;
     }
     .filterSelect{
       border:1px solid var(--border);
@@ -54,6 +54,22 @@
       font-size:13px;
       outline:none;
       min-width:150px;
+    }
+    .dateInput{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:13px;
+      outline:none;
+      min-width:155px;
+    }
+    .customDateWrap{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
     }
     .rangeSelect option,
     .filterSelect option{
@@ -125,7 +141,14 @@
           <option value="14">14 días</option>
           <option value="30" selected>30 días</option>
           <option value="90">90 días</option>
+          <option value="custom">Personalizado</option>
         </select>
+
+        <div id="customDateWrap" class="customDateWrap hidden">
+          <input id="dateFromInput" class="dateInput" type="date" aria-label="Fecha desde" />
+          <input id="dateToInput" class="dateInput" type="date" aria-label="Fecha hasta" />
+          <button id="applyCustomBtn" type="button">Aplicar</button>
+        </div>
 
         <select id="clientFilterSelect" class="filterSelect hidden" aria-label="Seleccionar cliente">
           <option value="all">Todos los clientes</option>
@@ -243,6 +266,12 @@
     return ALLOWED_DAYS.includes(n) ? n : 30;
   }
 
+  function normalizeRangeValue(value){
+    const v = String(value || "30").trim().toLowerCase();
+    if (v === "custom") return "custom";
+    return String(normalizeDays(v));
+  }
+
   function normalizePlan(value){
     const v = String(value || "all").trim().toUpperCase();
     if (v === "GO" || v === "PRIME") return v;
@@ -254,9 +283,14 @@
     return v || "all";
   }
 
-  function setRangeSelect(days){
+  function isValidDateInput(value){
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").trim());
+  }
+
+  function setRangeSelect(value){
     const select = $("rangeSelect");
-    if (select) select.value = String(normalizeDays(days));
+    if (!select) return;
+    select.value = normalizeRangeValue(value);
   }
 
   function setPlanSelect(plan){
@@ -267,6 +301,15 @@
   function setClientSelect(client){
     const select = $("clientFilterSelect");
     if (select) select.value = normalizeClient(client);
+  }
+
+  function setCustomDateInputs(dateFrom, dateTo){
+    if ($("dateFromInput")) $("dateFromInput").value = isValidDateInput(dateFrom) ? dateFrom : "";
+    if ($("dateToInput")) $("dateToInput").value = isValidDateInput(dateTo) ? dateTo : "";
+  }
+
+  function toggleCustomDateControls(show){
+    $("customDateWrap").classList.toggle("hidden", !show);
   }
 
   function toggleInternalFilters(isInternal){
@@ -338,6 +381,10 @@
 
   function getParams(){
     const u = new URL(location.href);
+    const rawDateFrom = u.searchParams.get("date_from") || "";
+    const rawDateTo = u.searchParams.get("date_to") || "";
+    const hasCustomDates = isValidDateInput(rawDateFrom) && isValidDateInput(rawDateTo);
+
     return {
       slug: u.searchParams.get("slug") || "",
       t: u.searchParams.get("t") || "",
@@ -345,14 +392,31 @@
       internal: u.searchParams.get("internal") === "1",
       client: normalizeClient(u.searchParams.get("client") || "all"),
       plan: normalizePlan(u.searchParams.get("plan") || "all"),
+      date_from: hasCustomDates ? rawDateFrom : "",
+      date_to: hasCustomDates ? rawDateTo : "",
+      rangeMode: hasCustomDates ? "custom" : normalizeRangeValue(u.searchParams.get("days") || "30"),
     };
   }
 
-  function updateUrlFilters({ days, client, plan }){
+  function updateUrlFilters({ rangeMode, days, date_from, date_to, client, plan }){
     const u = new URL(location.href);
 
-    if (typeof days !== "undefined") {
+    if (typeof rangeMode !== "undefined") {
+      if (rangeMode === "custom") {
+        if (isValidDateInput(date_from) && isValidDateInput(date_to)) {
+          u.searchParams.set("date_from", date_from);
+          u.searchParams.set("date_to", date_to);
+          u.searchParams.delete("days");
+        }
+      } else {
+        u.searchParams.set("days", String(normalizeDays(days)));
+        u.searchParams.delete("date_from");
+        u.searchParams.delete("date_to");
+      }
+    } else if (typeof days !== "undefined") {
       u.searchParams.set("days", String(normalizeDays(days)));
+      u.searchParams.delete("date_from");
+      u.searchParams.delete("date_to");
     }
 
     if (u.searchParams.get("internal") === "1") {
@@ -586,10 +650,18 @@
     $("helpText").innerHTML = lines || "—";
   }
 
-  function renderSummary(data, isInternal){
+  function getCurrentRangeLabel(params, data){
+    if (params.rangeMode === "custom" && params.date_from && params.date_to) {
+      return `del <b>${params.date_from}</b> al <b>${params.date_to}</b>`;
+    }
+    const days = data?.range_days || params.days || 30;
+    return days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`;
+  }
+
+  function renderSummary(data, isInternal, params){
     const k = data?.kpi || {};
     const prev = data?.previous_kpi || {};
-    const days = data?.range_days || 30;
+    const periodLabel = getCurrentRangeLabel(params, data);
 
     if (isInternal) {
       const activeClients = data?.active_clients || 0;
@@ -600,7 +672,7 @@
 
       $("summaryText").innerHTML = `
         <div style="line-height:1.55">
-          <div><b>Resumen global FaceLens</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
+          <div><b>Resumen global FaceLens</b> • ${periodLabel}</div>
           <div class="mini" style="margin-top:8px">
             Filtro cliente: <b>${clientFilter}</b> · filtro plan: <b>${planFilter}</b>.
             Hubo <b>${fmt(k.views)}</b> vistas vs <b>${fmt(prev.views)}</b> en el período anterior, 
@@ -616,7 +688,7 @@
     const name = data?.client?.name || data?.client?.slug || "cliente";
     $("summaryText").innerHTML = `
       <div style="line-height:1.55">
-        <div><b>${name}</b> • ${days === 1 ? "<b>hoy</b>" : `últimos <b>${days}</b> días`}</div>
+        <div><b>${name}</b> • ${periodLabel}</div>
         <div class="mini" style="margin-top:8px">
           Hubo <b>${fmt(k.views)}</b> vistas de modelos vs <b>${fmt(prev.views)}</b> en el período anterior,
           y <b>${fmt(k.clicks)}</b> clics en “Ver producto” vs <b>${fmt(prev.clicks)}</b>.
@@ -629,11 +701,14 @@
   async function load(){
     clearError();
 
-    const { slug, t, days, internal, client, plan } = getParams();
+    const params = getParams();
+    const { slug, t, days, internal, client, plan, date_from, date_to, rangeMode } = params;
 
-    setRangeSelect(days);
+    setRangeSelect(rangeMode);
     setClientSelect(client);
     setPlanSelect(plan);
+    setCustomDateInputs(date_from, date_to);
+    toggleCustomDateControls(rangeMode === "custom");
     toggleInternalFilters(internal);
 
     if (!t) {
@@ -657,21 +732,41 @@
         <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
           <code>?internal=1&t=TU_TOKEN_INTERNO&days=30&client=all&plan=all</code>
         </div>
-        <b>internal=1</b> activa el modo global. <b>t</b> es el token interno. <b>days</b> define el rango.
-        <b>client</b> filtra cliente. <b>plan</b> filtra GO o PRIME.
+        También podés usar rango personalizado:
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?internal=1&t=TU_TOKEN_INTERNO&date_from=2026-03-01&date_to=2026-03-10&client=all&plan=all</code>
+        </div>
       `;
-      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}&client=${encodeURIComponent(client)}&plan=${encodeURIComponent(plan)}`;
+
+      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&client=${encodeURIComponent(client)}&plan=${encodeURIComponent(plan)}`;
+
+      if (rangeMode === "custom" && date_from && date_to) {
+        url += `&date_from=${encodeURIComponent(date_from)}&date_to=${encodeURIComponent(date_to)}`;
+      } else {
+        url += `&days=${encodeURIComponent(days)}`;
+      }
     } else {
       $("mainTitle").textContent = "FaceLens • Dashboard";
       $("clientLine").textContent = `Cliente: ${slug}`;
       $("usageHelp").innerHTML = `
-        Este panel funciona con un link así:
+        Este panel funciona con links así:
         <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
           <code>?slug=tu_slug&t=tu_token&days=30</code>
         </div>
-        <b>slug</b> identifica al cliente. <b>t</b> es su token. <b>days</b> puede ser 1, 7, 14, 30 o 90.
+        O con rango personalizado:
+        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
+          <code>?slug=tu_slug&t=tu_token&date_from=2026-03-01&date_to=2026-03-10</code>
+        </div>
+        <b>slug</b> identifica al cliente. <b>t</b> es su token.
       `;
-      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}&days=${encodeURIComponent(days)}`;
+
+      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}`;
+
+      if (rangeMode === "custom" && date_from && date_to) {
+        url += `&date_from=${encodeURIComponent(date_from)}&date_to=${encodeURIComponent(date_to)}`;
+      } else {
+        url += `&days=${encodeURIComponent(days)}`;
+      }
     }
 
     const res = await fetch(url, { method:"GET" });
@@ -683,7 +778,6 @@
     }
 
     applyClientTheme(data.client || {}, internal);
-    setRangeSelect(data.range_days || days);
 
     if (internal) {
       fillClientOptions(data.available_clients || [], data.filters?.client || client);
@@ -698,7 +792,7 @@
     renderTop(data, internal);
     drawDailyChart(data.daily || [], internal);
     renderHelp(data);
-    renderSummary(data, internal);
+    renderSummary(data, internal, params);
   }
 
   $("reloadBtn").onclick = () => load();
@@ -711,8 +805,38 @@
   };
 
   $("rangeSelect").onchange = (e) => {
-    const nextDays = normalizeDays(e.target.value);
-    updateUrlFilters({ days: nextDays });
+    const nextRange = normalizeRangeValue(e.target.value);
+
+    if (nextRange === "custom") {
+      toggleCustomDateControls(true);
+      return;
+    }
+
+    toggleCustomDateControls(false);
+    updateUrlFilters({ rangeMode: nextRange, days: nextRange });
+    load();
+  };
+
+  $("applyCustomBtn").onclick = () => {
+    const dateFrom = $("dateFromInput").value;
+    const dateTo = $("dateToInput").value;
+
+    if (!isValidDateInput(dateFrom) || !isValidDateInput(dateTo)) {
+      showError("Completá Fecha desde y Fecha hasta.");
+      return;
+    }
+
+    if (dateFrom > dateTo) {
+      showError("La Fecha desde no puede ser mayor que la Fecha hasta.");
+      return;
+    }
+
+    clearError();
+    updateUrlFilters({
+      rangeMode: "custom",
+      date_from: dateFrom,
+      date_to: dateTo,
+    });
     load();
   };
 
