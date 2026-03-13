@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FaceLens • Dashboard</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+
   <style>
     :root{
       --bg:#0b1220;
@@ -115,6 +118,47 @@
     details summary{cursor:pointer;font-weight:800}
     .err{border:1px solid rgba(255,107,107,.35);background:rgba(255,107,107,.08);padding:12px 14px;border-radius:12px;margin-top:14px}
     .hidden{display:none !important}
+
+    .flatpickr-calendar{
+      background:#111a2e !important;
+      border:1px solid rgba(255,255,255,.10) !important;
+      box-shadow:0 12px 30px rgba(0,0,0,.35) !important;
+    }
+    .flatpickr-months,
+    .flatpickr-weekdays{
+      background:#111a2e !important;
+    }
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year{
+      color:#e9f1ff !important;
+      fill:#e9f1ff !important;
+      background:#111a2e !important;
+    }
+    .flatpickr-weekday{
+      color:#8ea0c0 !important;
+    }
+    .flatpickr-day{
+      color:#e9f1ff !important;
+    }
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange{
+      background:#19c37d !important;
+      border-color:#19c37d !important;
+      color:#08111d !important;
+    }
+    .flatpickr-day:hover{
+      background:rgba(45,212,255,.15) !important;
+      border-color:rgba(45,212,255,.25) !important;
+    }
+    .flatpickr-day.today{
+      border-color:#2dd4ff !important;
+    }
+    .flatpickr-prev-month svg,
+    .flatpickr-next-month svg{
+      fill:#e9f1ff !important;
+    }
+
     @media (max-width: 980px){
       .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
       .twoCols{grid-template-columns:1fr}
@@ -145,8 +189,8 @@
         </select>
 
         <div id="customDateWrap" class="customDateWrap hidden">
-          <input id="dateFromInput" class="dateInput" type="date" aria-label="Fecha desde" />
-          <input id="dateToInput" class="dateInput" type="date" aria-label="Fecha hasta" />
+          <input id="dateFromInput" class="dateInput" type="text" placeholder="Fecha desde" aria-label="Fecha desde" />
+          <input id="dateToInput" class="dateInput" type="text" placeholder="Fecha hasta" aria-label="Fecha hasta" />
           <button id="applyCustomBtn" type="button">Aplicar</button>
         </div>
 
@@ -234,10 +278,14 @@
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
   const ALLOWED_DAYS = [1, 7, 14, 30, 90];
+  let fpDateFrom = null;
+  let fpDateTo = null;
 
   function hexToRgb(hex){
     const raw = String(hex || "").trim().replace("#", "");
@@ -303,9 +351,35 @@
     if (select) select.value = normalizeClient(client);
   }
 
+  function initDatePickers(){
+    if (typeof flatpickr === "undefined") return;
+
+    if (!fpDateFrom) {
+      fpDateFrom = flatpickr("#dateFromInput", {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        clickOpens: true,
+      });
+    }
+
+    if (!fpDateTo) {
+      fpDateTo = flatpickr("#dateToInput", {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        clickOpens: true,
+      });
+    }
+  }
+
   function setCustomDateInputs(dateFrom, dateTo){
-    if ($("dateFromInput")) $("dateFromInput").value = isValidDateInput(dateFrom) ? dateFrom : "";
-    if ($("dateToInput")) $("dateToInput").value = isValidDateInput(dateTo) ? dateTo : "";
+    const fromValue = isValidDateInput(dateFrom) ? dateFrom : "";
+    const toValue = isValidDateInput(dateTo) ? dateTo : "";
+
+    if ($("dateFromInput")) $("dateFromInput").value = fromValue;
+    if ($("dateToInput")) $("dateToInput").value = toValue;
+
+    if (fpDateFrom) fpDateFrom.setDate(fromValue || null, false);
+    if (fpDateTo) fpDateTo.setDate(toValue || null, false);
   }
 
   function toggleCustomDateControls(show){
@@ -700,6 +774,7 @@
 
   async function load(){
     clearError();
+    initDatePickers();
 
     const params = getParams();
     const { slug, t, days, internal, client, plan, date_from, date_to, rangeMode } = params;
