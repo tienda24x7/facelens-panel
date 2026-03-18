@@ -284,8 +284,33 @@
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
   const ALLOWED_DAYS = [1, 7, 14, 30, 90];
+  const ALLOWED_LOCALES = ["es", "en", "pt-BR"];
   let fpDateFrom = null;
   let fpDateTo = null;
+  let currentLocale = "es";
+
+  function normalizeLocale(value){
+    const raw = String(value || "").trim();
+    if (!raw) return "es";
+
+    const lower = raw.toLowerCase();
+    if (lower === "es" || lower.startsWith("es-")) return "es";
+    if (lower === "en" || lower.startsWith("en-")) return "en";
+    if (lower === "pt" || lower === "pt-br" || lower.startsWith("pt-")) return "pt-BR";
+
+    return "es";
+  }
+
+  function setCurrentLocale(locale){
+    currentLocale = normalizeLocale(locale);
+    document.documentElement.lang = currentLocale;
+    window.__FACELENS_LOCALE__ = currentLocale;
+    return currentLocale;
+  }
+
+  function getCurrentLocale(){
+    return window.__FACELENS_LOCALE__ || currentLocale || "es";
+  }
 
   function hexToRgb(hex){
     const raw = String(hex || "").trim().replace("#", "");
@@ -800,6 +825,7 @@
 
     let url = "";
     if (internal) {
+      setCurrentLocale("es");
       $("mainTitle").textContent = "FaceLens • Dashboard interno";
       $("clientLine").textContent = "Resumen total de toda la app";
       $("usageHelp").innerHTML = `
@@ -850,6 +876,10 @@
     if (!data || data.ok !== true){
       showError("No pude cargar métricas. Revisá token/slug o si la function está deployada. Respuesta: " + JSON.stringify(data));
       return;
+    }
+
+    if (!internal) {
+      setCurrentLocale(data?.client?.locale || "es");
     }
 
     applyClientTheme(data.client || {}, internal);
