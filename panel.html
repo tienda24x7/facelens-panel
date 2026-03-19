@@ -226,12 +226,7 @@
         <div class="helpBox" style="margin-top:12px">
           <details>
             <summary id="tipsSummary">Tips para mejorar resultados</summary>
-            <ul class="mini" style="margin:10px 0 0 18px;line-height:1.55">
-              <li>Si suben <b>Vistas</b> pero no <b>Clics</b>, revisá el botón “Ver producto” y las URLs.</li>
-              <li>Usá campañas con <b>utm_campaign</b> para comparar ads.</li>
-              <li>Los modelos con más vistas son tus “ganadores”: empujalos en promos.</li>
-              <li>Más <b>Capturas</b> = más chance de compartir por WhatsApp.</li>
-            </ul>
+            <ul class="mini" style="margin:10px 0 0 18px;line-height:1.55" id="tipsList"></ul>
           </details>
         </div>
       </div>
@@ -318,6 +313,7 @@
       tableCtr: "CTR",
       noData: "Sin datos todavía.",
       noDailyData: "Sin datos diarios todavía.",
+      noHelpData: "Sin notas de ayuda todavía.",
       chartFootClient: "Línea principal: Vistas globales • Línea secundaria: Clics globales",
       chartFootDefault: "Línea principal: Vistas • Línea secundaria: Clics",
       vsPrevious: "vs período anterior",
@@ -331,6 +327,7 @@
       today: "Hoy",
       lastDays: "últimos",
       todayLabel: "hoy",
+      daysWord: "días",
       fromTo: "del",
       to: "al",
       custom: "Personalizado",
@@ -357,7 +354,33 @@
       usageTokenDesc: "es su token.",
       usageDaysDesc: "(opcional) rango de días.",
       usageInternalIntro: "Dashboard interno global.",
-      usageInternalCustom: "También podés usar rango personalizado:"
+      usageInternalCustom: "También podés usar rango personalizado:",
+      summaryClientIntro: "Resumen de",
+      summaryGlobalIntro: "Resumen global FaceLens",
+      summaryViewsPart: "Hubo",
+      summaryModelViewsPart: "vistas de modelos",
+      summaryClicksPart: "clics en “Ver producto”",
+      summaryPreviousPart: "vs",
+      summaryPreviousPeriod: "en el período anterior",
+      summaryCtrPart: "El CTR es",
+      summaryVisitorsPart: "Se registraron",
+      summaryUniqueVisitorsPart: "visitantes únicos.",
+      summaryGlobalFilterClient: "Filtro cliente",
+      summaryGlobalFilterPlan: "filtro plan",
+      summaryGlobalClicks: "clics",
+      summaryGlobalCaptures: "capturas",
+      summaryGlobalCtr: "El CTR global fue",
+      summaryGlobalVisitors: "Se detectaron",
+      summaryGlobalUniqueVisitors: "visitantes únicos y",
+      summaryGlobalClientsWithActivity: "clientes con actividad.",
+      summaryGlobalTopClient: "El cliente con más vistas fue",
+      summaryGlobalTopModel: "y el modelo más visto fue",
+      summaryAnd: "y",
+      fallbackClientName: "cliente",
+      tips1: "Si suben Vistas pero no Clics, revisá el botón “Ver producto” y las URLs.",
+      tips2: "Usá campañas con utm_campaign para comparar ads.",
+      tips3: "Los modelos con más vistas son tus “ganadores”: empujalos en promos.",
+      tips4: "Más Capturas = más chance de compartir por WhatsApp."
     },
     en: {
       reload: "Refresh",
@@ -388,6 +411,7 @@
       tableCtr: "CTR",
       noData: "No data yet.",
       noDailyData: "No daily data yet.",
+      noHelpData: "No help notes yet.",
       chartFootClient: "Main line: Global views • Secondary line: Global clicks",
       chartFootDefault: "Main line: Views • Secondary line: Clicks",
       vsPrevious: "vs previous period",
@@ -401,6 +425,7 @@
       today: "Today",
       lastDays: "last",
       todayLabel: "today",
+      daysWord: "days",
       fromTo: "from",
       to: "to",
       custom: "Custom",
@@ -427,7 +452,33 @@
       usageTokenDesc: "is the token.",
       usageDaysDesc: "(optional) date range.",
       usageInternalIntro: "Global internal dashboard.",
-      usageInternalCustom: "You can also use a custom range:"
+      usageInternalCustom: "You can also use a custom range:",
+      summaryClientIntro: "Summary for",
+      summaryGlobalIntro: "Global FaceLens summary",
+      summaryViewsPart: "There were",
+      summaryModelViewsPart: "model views",
+      summaryClicksPart: "clicks on “View product”",
+      summaryPreviousPart: "vs",
+      summaryPreviousPeriod: "in the previous period",
+      summaryCtrPart: "CTR is",
+      summaryVisitorsPart: "There were",
+      summaryUniqueVisitorsPart: "unique visitors.",
+      summaryGlobalFilterClient: "Client filter",
+      summaryGlobalFilterPlan: "plan filter",
+      summaryGlobalClicks: "clicks",
+      summaryGlobalCaptures: "captures",
+      summaryGlobalCtr: "Global CTR was",
+      summaryGlobalVisitors: "There were",
+      summaryGlobalUniqueVisitors: "unique visitors and",
+      summaryGlobalClientsWithActivity: "clients with activity.",
+      summaryGlobalTopClient: "The client with the most views was",
+      summaryGlobalTopModel: "and the most viewed model was",
+      summaryAnd: "and",
+      fallbackClientName: "client",
+      tips1: "If Views go up but Clicks do not, review the “View product” button and the URLs.",
+      tips2: "Use campaigns with utm_campaign to compare ads.",
+      tips3: "The most viewed models are your “winners”: push them in promotions.",
+      tips4: "More Captures = more chances to share on WhatsApp."
     },
     "pt-BR": {
       reload: "Atualizar",
@@ -458,6 +509,7 @@
       tableCtr: "CTR",
       noData: "Sem dados ainda.",
       noDailyData: "Sem dados diários ainda.",
+      noHelpData: "Sem notas de ajuda ainda.",
       chartFootClient: "Linha principal: Visualizações globais • Linha secundária: Cliques globais",
       chartFootDefault: "Linha principal: Visualizações • Linha secundária: Cliques",
       vsPrevious: "vs período anterior",
@@ -471,6 +523,7 @@
       today: "Hoje",
       lastDays: "últimos",
       todayLabel: "hoje",
+      daysWord: "dias",
       fromTo: "de",
       to: "até",
       custom: "Personalizado",
@@ -497,7 +550,33 @@
       usageTokenDesc: "é o token.",
       usageDaysDesc: "(opcional) intervalo de dias.",
       usageInternalIntro: "Dashboard interno global.",
-      usageInternalCustom: "Você também pode usar intervalo personalizado:"
+      usageInternalCustom: "Você também pode usar intervalo personalizado:",
+      summaryClientIntro: "Resumo de",
+      summaryGlobalIntro: "Resumo global do FaceLens",
+      summaryViewsPart: "Houve",
+      summaryModelViewsPart: "visualizações de modelos",
+      summaryClicksPart: "cliques em “Ver produto”",
+      summaryPreviousPart: "vs",
+      summaryPreviousPeriod: "no período anterior",
+      summaryCtrPart: "O CTR é",
+      summaryVisitorsPart: "Foram registrados",
+      summaryUniqueVisitorsPart: "visitantes únicos.",
+      summaryGlobalFilterClient: "Filtro cliente",
+      summaryGlobalFilterPlan: "filtro plano",
+      summaryGlobalClicks: "cliques",
+      summaryGlobalCaptures: "capturas",
+      summaryGlobalCtr: "O CTR global foi",
+      summaryGlobalVisitors: "Foram detectados",
+      summaryGlobalUniqueVisitors: "visitantes únicos e",
+      summaryGlobalClientsWithActivity: "clientes com atividade.",
+      summaryGlobalTopClient: "O cliente com mais visualizações foi",
+      summaryGlobalTopModel: "e o modelo mais visto foi",
+      summaryAnd: "e",
+      fallbackClientName: "cliente",
+      tips1: "Se as Visualizações sobem, mas os Cliques não, revise o botão “Ver produto” e as URLs.",
+      tips2: "Use campanhas com utm_campaign para comparar anúncios.",
+      tips3: "Os modelos mais vistos são seus “vencedores”: impulsione-os nas promoções.",
+      tips4: "Mais Capturas = mais chances de compartilhar no WhatsApp."
     }
   };
 
@@ -574,6 +653,20 @@
     if (applyBtn) applyBtn.textContent = t("apply");
   }
 
+  function renderTips(){
+    const tips = [
+      t("tips1"),
+      t("tips2"),
+      t("tips3"),
+      t("tips4")
+    ];
+
+    const el = $("tipsList");
+    if (!el) return;
+
+    el.innerHTML = tips.map(item => `<li>${item}</li>`).join("");
+  }
+
   function applyStaticTranslations(isInternal){
     if ($("reloadBtn")) $("reloadBtn").textContent = t("reload");
     if ($("helpBtn")) $("helpBtn").textContent = t("helpButton");
@@ -588,6 +681,7 @@
     applyRangeOptionsTranslations();
     applyFilterOptionsTranslations();
     applyDateInputsTranslations();
+    renderTips();
 
     if (isInternal) {
       if ($("topViewsTitle")) $("topViewsTitle").textContent = t("topClientsViews");
@@ -602,6 +696,7 @@
     applyRangeOptionsTranslations();
     applyFilterOptionsTranslations();
     applyDateInputsTranslations();
+    renderTips();
   }
 
   function buildClientUsageHelp(){
@@ -1064,8 +1159,15 @@
 
   function renderHelp(data){
     const help = data?.help || {};
-    const lines = Object.entries(help).map(([k,v]) => `<div><b>${k}</b>: ${v}</div>`).join("");
-    $("helpText").innerHTML = lines || "—";
+    const entries = Object.entries(help);
+
+    if (!entries.length) {
+      $("helpText").innerHTML = t("noHelpData");
+      return;
+    }
+
+    const lines = entries.map(([k,v]) => `<div><b>${k}</b>: ${v}</div>`).join("");
+    $("helpText").innerHTML = lines;
   }
 
   function getCurrentRangeLabel(params, data){
@@ -1073,7 +1175,9 @@
       return `${t("fromTo")} <b>${params.date_from}</b> ${t("to")} <b>${params.date_to}</b>`;
     }
     const days = data?.range_days || params.days || 30;
-    return days === 1 ? `<b>${t("todayLabel")}</b>` : `${t("lastDays")} <b>${days}</b> ${days === 1 ? t("today") : ""}`.trim();
+    return days === 1
+      ? `<b>${t("todayLabel")}</b>`
+      : `${t("lastDays")} <b>${days}</b> ${t("daysWord")}`;
   }
 
   function renderSummary(data, isInternal, params){
@@ -1090,27 +1194,30 @@
 
       $("summaryText").innerHTML = `
         <div style="line-height:1.55">
-          <div><b>Resumen global FaceLens</b> • ${periodLabel}</div>
+          <div><b>${t("summaryGlobalIntro")}</b> • ${periodLabel}</div>
           <div class="mini" style="margin-top:8px">
-            Filtro cliente: <b>${clientFilter}</b> · filtro plan: <b>${planFilter}</b>.
-            Hubo <b>${fmt(k.views)}</b> vistas vs <b>${fmt(prev.views)}</b> en el período anterior, 
-            <b>${fmt(k.clicks)}</b> clics vs <b>${fmt(prev.clicks)}</b>, y <b>${fmt(k.captures)}</b> capturas.
-            El CTR global fue <b>${fmtPct(k.ctr_pct)}</b>. Se detectaron <b>${fmt(k.visitors)}</b> visitantes únicos y
-            <b>${fmt(activeClients)}</b> clientes con actividad. El cliente con más vistas fue <b>${topClient}</b> y el modelo más visto fue <b>${topModel}</b>.
+            ${t("summaryGlobalFilterClient")}: <b>${clientFilter}</b> · ${t("summaryGlobalFilterPlan")}: <b>${planFilter}</b>.
+            ${t("summaryViewsPart")} <b>${fmt(k.views)}</b> ${t("tableViews").toLowerCase()} ${t("summaryPreviousPart")} <b>${fmt(prev.views)}</b> ${t("summaryPreviousPeriod")},
+            <b>${fmt(k.clicks)}</b> ${t("summaryGlobalClicks")} ${t("summaryPreviousPart")} <b>${fmt(prev.clicks)}</b> ${t("summaryPreviousPeriod")},
+            ${t("summaryAnd")} <b>${fmt(k.captures)}</b> ${t("summaryGlobalCaptures")}.
+            ${t("summaryGlobalCtr")} <b>${fmtPct(k.ctr_pct)}</b>.
+            ${t("summaryGlobalVisitors")} <b>${fmt(k.visitors)}</b> ${t("summaryGlobalUniqueVisitors")} <b>${fmt(activeClients)}</b> ${t("summaryGlobalClientsWithActivity")}
+            ${t("summaryGlobalTopClient")} <b>${topClient}</b> ${t("summaryGlobalTopModel")} <b>${topModel}</b>.
           </div>
         </div>
       `;
       return;
     }
 
-    const name = data?.client?.name || data?.client?.slug || "cliente";
+    const name = data?.client?.name || data?.client?.slug || t("fallbackClientName");
     $("summaryText").innerHTML = `
       <div style="line-height:1.55">
-        <div><b>${name}</b> • ${periodLabel}</div>
+        <div><b>${t("summaryClientIntro")} ${name}</b> • ${periodLabel}</div>
         <div class="mini" style="margin-top:8px">
-          Hubo <b>${fmt(k.views)}</b> vistas de modelos vs <b>${fmt(prev.views)}</b> en el período anterior,
-          y <b>${fmt(k.clicks)}</b> clics en “Ver producto” vs <b>${fmt(prev.clicks)}</b>.
-          El CTR es <b>${fmtPct(k.ctr_pct)}</b>. Se registraron <b>${fmt(k.visitors)}</b> visitantes únicos.
+          ${t("summaryViewsPart")} <b>${fmt(k.views)}</b> ${t("summaryModelViewsPart")} ${t("summaryPreviousPart")} <b>${fmt(prev.views)}</b> ${t("summaryPreviousPeriod")},
+          ${t("summaryAnd")} <b>${fmt(k.clicks)}</b> ${t("summaryClicksPart")} ${t("summaryPreviousPart")} <b>${fmt(prev.clicks)}</b> ${t("summaryPreviousPeriod")}.
+          ${t("summaryCtrPart")} <b>${fmtPct(k.ctr_pct)}</b>.
+          ${t("summaryVisitorsPart")} <b>${fmt(k.visitors)}</b> ${t("summaryUniqueVisitorsPart")}
         </div>
       </div>
     `;
