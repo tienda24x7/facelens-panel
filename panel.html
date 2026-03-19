@@ -380,7 +380,13 @@
       tips1: "Si suben Vistas pero no Clics, revisá el botón “Ver producto” y las URLs.",
       tips2: "Usá campañas con utm_campaign para comparar ads.",
       tips3: "Los modelos con más vistas son tus “ganadores”: empujalos en promos.",
-      tips4: "Más Capturas = más chance de compartir por WhatsApp."
+      tips4: "Más Capturas = más chance de compartir por WhatsApp.",
+      helpViewsDesc: "Cuántas veces se vieron modelos (interés).",
+      helpClicksDesc: "Cuántas veces tocaron “Ver producto” (intención).",
+      helpCapturesDesc: "Capturas (engagement/compartible).",
+      helpVisitorsDesc: "Personas únicas (visitor_id).",
+      helpSessionsDesc: "Sesiones únicas (session_id).",
+      helpCtrDesc: "Clicks/Vistas (%) dentro de FaceLens."
     },
     en: {
       reload: "Refresh",
@@ -478,7 +484,13 @@
       tips1: "If Views go up but Clicks do not, review the “View product” button and the URLs.",
       tips2: "Use campaigns with utm_campaign to compare ads.",
       tips3: "The most viewed models are your “winners”: push them in promotions.",
-      tips4: "More Captures = more chances to share on WhatsApp."
+      tips4: "More Captures = more chances to share on WhatsApp.",
+      helpViewsDesc: "How many times models were viewed (interest).",
+      helpClicksDesc: "How many times “View product” was clicked (intent).",
+      helpCapturesDesc: "Captures (engagement/shareable).",
+      helpVisitorsDesc: "Unique people (visitor_id).",
+      helpSessionsDesc: "Unique sessions (session_id).",
+      helpCtrDesc: "Clicks/Views (%) inside FaceLens."
     },
     "pt-BR": {
       reload: "Atualizar",
@@ -576,7 +588,13 @@
       tips1: "Se as Visualizações sobem, mas os Cliques não, revise o botão “Ver produto” e as URLs.",
       tips2: "Use campanhas com utm_campaign para comparar anúncios.",
       tips3: "Os modelos mais vistos são seus “vencedores”: impulsione-os nas promoções.",
-      tips4: "Mais Capturas = mais chances de compartilhar no WhatsApp."
+      tips4: "Mais Capturas = mais chances de compartilhar no WhatsApp.",
+      helpViewsDesc: "Quantas vezes os modelos foram visualizados (interesse).",
+      helpClicksDesc: "Quantas vezes tocaram em “Ver produto” (intenção).",
+      helpCapturesDesc: "Capturas (engajamento/compartilhável).",
+      helpVisitorsDesc: "Pessoas únicas (visitor_id).",
+      helpSessionsDesc: "Sessões únicas (session_id).",
+      helpCtrDesc: "Cliques/Visualizações (%) dentro do FaceLens."
     }
   };
 
@@ -1159,14 +1177,28 @@
 
   function renderHelp(data){
     const help = data?.help || {};
-    const entries = Object.entries(help);
+    const entries = Object.keys(help);
 
     if (!entries.length) {
       $("helpText").innerHTML = t("noHelpData");
       return;
     }
 
-    const lines = entries.map(([k,v]) => `<div><b>${k}</b>: ${v}</div>`).join("");
+    const translatedHelp = {
+      views: t("helpViewsDesc"),
+      clicks: t("helpClicksDesc"),
+      captures: t("helpCapturesDesc"),
+      visitors: t("helpVisitorsDesc"),
+      sessions: t("helpSessionsDesc"),
+      ctr_pct: t("helpCtrDesc"),
+    };
+
+    const lines = entries.map((key) => {
+      const label = `<b>${key}</b>`;
+      const description = translatedHelp[key] || help[key] || "";
+      return `<div>${label}: ${description}</div>`;
+    }).join("");
+
     $("helpText").innerHTML = lines;
   }
 
@@ -1298,6 +1330,7 @@
     }
 
     applyClientTheme(data.client || {}, internal);
+    applyStaticTranslations(internal);
 
     if (internal) {
       fillClientOptions(data.available_clients || [], data.filters?.client || client);
