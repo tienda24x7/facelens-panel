@@ -215,17 +215,17 @@
 
     <div class="grid twoCols">
       <div class="card">
-        <h2>Evolución diaria</h2>
+        <h2 id="dailyTitle">Evolución diaria</h2>
         <canvas id="dailyChart" class="chart" width="1000" height="240"></canvas>
         <div class="mini" id="chartFoot">—</div>
       </div>
 
       <div class="card">
-        <h2>Resumen rápido</h2>
+        <h2 id="summaryTitle">Resumen rápido</h2>
         <div class="mini" id="summaryText">—</div>
         <div class="helpBox" style="margin-top:12px">
           <details>
-            <summary>Tips para mejorar resultados</summary>
+            <summary id="tipsSummary">Tips para mejorar resultados</summary>
             <ul class="mini" style="margin:10px 0 0 18px;line-height:1.55">
               <li>Si suben <b>Vistas</b> pero no <b>Clics</b>, revisá el botón “Ver producto” y las URLs.</li>
               <li>Usá campañas con <b>utm_campaign</b> para comparar ads.</li>
@@ -247,26 +247,26 @@
         <div id="topClicks"></div>
       </div>
       <div class="card">
-        <h2>Campañas (utm_campaign)</h2>
+        <h2 id="campaignsTitle">Campañas (utm_campaign)</h2>
         <div id="campaigns"></div>
       </div>
     </div>
 
     <div class="grid twoCols">
       <div class="card">
-        <h2>Categorías</h2>
+        <h2 id="categoriesTitle">Categorías</h2>
         <div id="categories"></div>
       </div>
 
       <div class="card">
-        <h2>Ayuda (notas)</h2>
+        <h2 id="helpNotesTitle">Ayuda (notas)</h2>
         <div class="mini" id="helpText">—</div>
       </div>
     </div>
 
     <div class="helpBox" style="margin-top:18px">
       <details>
-        <summary>Cómo usar este link</summary>
+        <summary id="usageSummary">Cómo usar este link</summary>
         <div class="mini" style="margin-top:8px;line-height:1.55" id="usageHelp">
           Este panel funciona con un link así:
           <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
@@ -284,10 +284,57 @@
   const ENDPOINT = "https://romgbrobvperljaviekj.supabase.co/functions/v1/swift-handler";
   const $ = (id) => document.getElementById(id);
   const ALLOWED_DAYS = [1, 7, 14, 30, 90];
-  const ALLOWED_LOCALES = ["es", "en", "pt-BR"];
   let fpDateFrom = null;
   let fpDateTo = null;
   let currentLocale = "es";
+
+  const I18N = {
+    es: {
+      reload: "Actualizar",
+      helpButton: "¿Qué significa?",
+      summaryTitle: "Resumen rápido",
+      dailyTitle: "Evolución diaria",
+      campaignsTitle: "Campañas (utm_campaign)",
+      categoriesTitle: "Categorías",
+      helpNotesTitle: "Ayuda (notas)",
+      usageSummary: "Cómo usar este link",
+      tipsSummary: "Tips para mejorar resultados",
+      topModelsViews: "Top modelos (vistas)",
+      topModelsClicks: "Top modelos (clics)",
+      topClientsViews: "Top clientes (vistas)",
+      topClientsClicks: "Top clientes (clics)"
+    },
+    en: {
+      reload: "Refresh",
+      helpButton: "What does it mean?",
+      summaryTitle: "Quick summary",
+      dailyTitle: "Daily trend",
+      campaignsTitle: "Campaigns (utm_campaign)",
+      categoriesTitle: "Categories",
+      helpNotesTitle: "Help (notes)",
+      usageSummary: "How to use this link",
+      tipsSummary: "Tips to improve results",
+      topModelsViews: "Top models (views)",
+      topModelsClicks: "Top models (clicks)",
+      topClientsViews: "Top clients (views)",
+      topClientsClicks: "Top clients (clicks)"
+    },
+    "pt-BR": {
+      reload: "Atualizar",
+      helpButton: "O que significa?",
+      summaryTitle: "Resumo rápido",
+      dailyTitle: "Evolução diária",
+      campaignsTitle: "Campanhas (utm_campaign)",
+      categoriesTitle: "Categorias",
+      helpNotesTitle: "Ajuda (notas)",
+      usageSummary: "Como usar este link",
+      tipsSummary: "Dicas para melhorar resultados",
+      topModelsViews: "Top modelos (visualizações)",
+      topModelsClicks: "Top modelos (cliques)",
+      topClientsViews: "Top clientes (visualizações)",
+      topClientsClicks: "Top clientes (cliques)"
+    }
+  };
 
   function normalizeLocale(value){
     const raw = String(value || "").trim();
@@ -310,6 +357,31 @@
 
   function getCurrentLocale(){
     return window.__FACELENS_LOCALE__ || currentLocale || "es";
+  }
+
+  function t(key){
+    const locale = getCurrentLocale();
+    return I18N[locale]?.[key] ?? I18N.es?.[key] ?? key;
+  }
+
+  function applyStaticTranslations(isInternal){
+    if ($("reloadBtn")) $("reloadBtn").textContent = t("reload");
+    if ($("helpBtn")) $("helpBtn").textContent = t("helpButton");
+    if ($("summaryTitle")) $("summaryTitle").textContent = t("summaryTitle");
+    if ($("dailyTitle")) $("dailyTitle").textContent = t("dailyTitle");
+    if ($("campaignsTitle")) $("campaignsTitle").textContent = t("campaignsTitle");
+    if ($("categoriesTitle")) $("categoriesTitle").textContent = t("categoriesTitle");
+    if ($("helpNotesTitle")) $("helpNotesTitle").textContent = t("helpNotesTitle");
+    if ($("usageSummary")) $("usageSummary").textContent = t("usageSummary");
+    if ($("tipsSummary")) $("tipsSummary").textContent = t("tipsSummary");
+
+    if (isInternal) {
+      if ($("topViewsTitle")) $("topViewsTitle").textContent = t("topClientsViews");
+      if ($("topClicksTitle")) $("topClicksTitle").textContent = t("topClientsClicks");
+    } else {
+      if ($("topViewsTitle")) $("topViewsTitle").textContent = t("topModelsViews");
+      if ($("topClicksTitle")) $("topClicksTitle").textContent = t("topModelsClicks");
+    }
   }
 
   function hexToRgb(hex){
@@ -628,8 +700,8 @@
 
   function renderTop(data, isInternal){
     if (isInternal) {
-      $("topViewsTitle").textContent = "Top clientes (vistas)";
-      $("topClicksTitle").textContent = "Top clientes (clics)";
+      $("topViewsTitle").textContent = t("topClientsViews");
+      $("topClicksTitle").textContent = t("topClientsClicks");
 
       renderTable($("topViews"),
         ["Cliente", "Vistas"],
@@ -641,8 +713,8 @@
         (data.top_clients_clicks || []).map(x => [x.slug, fmt(x.clicks)])
       );
     } else {
-      $("topViewsTitle").textContent = "Top modelos (vistas)";
-      $("topClicksTitle").textContent = "Top modelos (clics)";
+      $("topViewsTitle").textContent = t("topModelsViews");
+      $("topClicksTitle").textContent = t("topModelsClicks");
 
       renderTable($("topViews"),
         ["Modelo", "Vistas"],
@@ -654,26 +726,6 @@
         (data.top_models_clicks || []).map(x => [x.model, fmt(x.clicks)])
       );
     }
-
-    renderTable($("campaigns"),
-      ["Campaña", "Vistas", "Clics", "CTR"],
-      (data.campaigns || []).map(x => [
-        `<span class="tag">${x.campaign}</span>`,
-        fmt(x.views),
-        fmt(x.clicks),
-        fmtPct(x.ctr_pct)
-      ])
-    );
-
-    renderTable($("categories"),
-      ["Categoría", "Vistas", "Clics", "CTR"],
-      (data.categories || []).map(x => [
-        `<span class="tag">${x.category}</span>`,
-        fmt(x.views),
-        fmt(x.clicks),
-        fmtPct(x.ctr_pct)
-      ])
-    );
   }
 
   function drawDailyChart(daily, isInternal){
@@ -826,6 +878,8 @@
     let url = "";
     if (internal) {
       setCurrentLocale("es");
+      applyStaticTranslations(true);
+
       $("mainTitle").textContent = "FaceLens • Dashboard interno";
       $("clientLine").textContent = "Resumen total de toda la app";
       $("usageHelp").innerHTML = `
@@ -847,20 +901,6 @@
         url += `&days=${encodeURIComponent(days)}`;
       }
     } else {
-      $("mainTitle").textContent = "FaceLens • Dashboard";
-      $("clientLine").textContent = `Cliente: ${slug}`;
-      $("usageHelp").innerHTML = `
-        Este panel funciona con links así:
-        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
-          <code>?slug=tu_slug&t=tu_token&days=30</code>
-        </div>
-        O con rango personalizado:
-        <div style="margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(0,0,0,.18)">
-          <code>?slug=tu_slug&t=tu_token&date_from=2026-03-01&date_to=2026-03-10</code>
-        </div>
-        <b>slug</b> identifica al cliente. <b>t</b> es su token.
-      `;
-
       url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}`;
 
       if (rangeMode === "custom" && date_from && date_to) {
@@ -880,6 +920,7 @@
 
     if (!internal) {
       setCurrentLocale(data?.client?.locale || "es");
+      applyStaticTranslations(false);
     }
 
     applyClientTheme(data.client || {}, internal);
