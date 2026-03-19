@@ -1121,7 +1121,7 @@
     initDatePickers();
 
     const params = getParams();
-    const { slug, t, days, internal, client, plan, date_from, date_to, rangeMode } = params;
+    const { slug, t: token, days, internal, client, plan, date_from, date_to, rangeMode } = params;
 
     setRangeSelect(rangeMode);
     setClientSelect(client);
@@ -1133,7 +1133,7 @@
 
     if ($("clientLine")) $("clientLine").textContent = t("loading");
 
-    if (!t) {
+    if (!token) {
       showError(t("missingToken"));
       $("clientLine").textContent = t("missingInfo");
       return;
@@ -1154,7 +1154,7 @@
       $("clientLine").textContent = t("internalSummary");
       $("usageHelp").innerHTML = buildInternalUsageHelp();
 
-      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(t)}&client=${encodeURIComponent(client)}&plan=${encodeURIComponent(plan)}`;
+      url = `${ENDPOINT}?internal=1&t=${encodeURIComponent(token)}&client=${encodeURIComponent(client)}&plan=${encodeURIComponent(plan)}`;
 
       if (rangeMode === "custom" && date_from && date_to) {
         url += `&date_from=${encodeURIComponent(date_from)}&date_to=${encodeURIComponent(date_to)}`;
@@ -1166,7 +1166,7 @@
       $("clientLine").textContent = t("loading");
       $("usageHelp").innerHTML = buildClientUsageHelp();
 
-      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(t)}`;
+      url = `${ENDPOINT}?slug=${encodeURIComponent(slug)}&t=${encodeURIComponent(token)}`;
 
       if (rangeMode === "custom" && date_from && date_to) {
         url += `&date_from=${encodeURIComponent(date_from)}&date_to=${encodeURIComponent(date_to)}`;
