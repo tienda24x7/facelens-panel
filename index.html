@@ -289,6 +289,8 @@
 
   const I18N = {
     es: {
+      pageTitle: "FaceLens • Dashboard",
+      brandTitleBase: "FaceLens • Dashboard",
       reload: "Actualizar",
       helpButton: "¿Qué significa?",
       summaryTitle: "Resumen rápido",
@@ -393,6 +395,8 @@
       helpCtrDesc: "Clicks/Vistas (%) dentro de FaceLens."
     },
     en: {
+      pageTitle: "FaceLens • Dashboard",
+      brandTitleBase: "FaceLens • Dashboard",
       reload: "Refresh",
       helpButton: "What does it mean?",
       summaryTitle: "Quick summary",
@@ -497,6 +501,8 @@
       helpCtrDesc: "Clicks/Views (%) inside FaceLens."
     },
     "pt-BR": {
+      pageTitle: "FaceLens • Dashboard",
+      brandTitleBase: "FaceLens • Dashboard",
       reload: "Atualizar",
       helpButton: "O que significa?",
       summaryTitle: "Resumo rápido",
@@ -614,10 +620,18 @@
     return "es";
   }
 
+  function getNumberLocale(){
+    const locale = normalizeLocale(getCurrentLocale());
+    if (locale === "en") return "en-US";
+    if (locale === "pt-BR") return "pt-BR";
+    return "es-AR";
+  }
+
   function setCurrentLocale(locale){
     currentLocale = normalizeLocale(locale);
     document.documentElement.lang = currentLocale;
     window.__FACELENS_LOCALE__ = currentLocale;
+    document.title = t("pageTitle");
     applyDynamicLocaleUi();
     return currentLocale;
   }
@@ -690,6 +704,8 @@
   }
 
   function applyStaticTranslations(isInternal){
+    document.title = t("pageTitle");
+
     if ($("reloadBtn")) $("reloadBtn").textContent = t("reload");
     if ($("helpBtn")) $("helpBtn").textContent = t("helpButton");
     if ($("summaryTitle")) $("summaryTitle").textContent = t("summaryTitle");
@@ -715,6 +731,7 @@
   }
 
   function applyDynamicLocaleUi(){
+    document.title = t("pageTitle");
     applyRangeOptionsTranslations();
     applyFilterOptionsTranslations();
     applyDateInputsTranslations();
@@ -969,25 +986,25 @@
   function fmt(n){
     const x = Number(n || 0);
     if (!Number.isFinite(x)) return "0";
-    return x.toLocaleString("es-AR");
+    return x.toLocaleString(getNumberLocale());
   }
 
   function fmtPct(n){
     const x = Number(n || 0);
     if (!Number.isFinite(x)) return "0%";
-    return x.toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
+    return x.toLocaleString(getNumberLocale(), { maximumFractionDigits: 2 }) + "%";
   }
 
   function fmtSignedPct(n){
     const x = Number(n || 0);
     const sign = x > 0 ? "+" : "";
-    return `${sign}${x.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
+    return `${sign}${x.toLocaleString(getNumberLocale(), { maximumFractionDigits: 2 })}%`;
   }
 
   function fmtSignedPts(n){
     const x = Number(n || 0);
     const sign = x > 0 ? "+" : "";
-    return `${sign}${x.toLocaleString("es-AR", { maximumFractionDigits: 2 })} pts`;
+    return `${sign}${x.toLocaleString(getNumberLocale(), { maximumFractionDigits: 2 })} pts`;
   }
 
   function deltaClass(n){
@@ -1305,7 +1322,7 @@
         url += `&days=${encodeURIComponent(days)}`;
       }
     } else {
-      $("mainTitle").textContent = "FaceLens • Dashboard";
+      $("mainTitle").textContent = t("brandTitleBase");
       $("clientLine").textContent = t("loading");
       $("usageHelp").innerHTML = buildClientUsageHelp();
 
@@ -1341,8 +1358,9 @@
       setPlanSelect(data.filters?.plan || plan);
       $("clientLine").textContent = `${t("internalDashboardLabel")} • ${fmt(data.active_clients || 0)} ${t("internalClientsActive")}`;
     } else {
-      $("mainTitle").textContent = `FaceLens • Dashboard ${data.client?.name || slug}`;
-      $("clientLine").textContent = `${t("clientLabel")} ${data.client?.name || slug} (${slug})`;
+      const clientName = data.client?.name || slug;
+      $("mainTitle").textContent = `${t("brandTitleBase")} ${clientName}`;
+      $("clientLine").textContent = `${t("clientLabel")} ${clientName} (${slug})`;
     }
 
     renderKPIs(data);
